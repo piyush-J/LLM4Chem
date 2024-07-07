@@ -47,7 +47,7 @@ def generate(
         max_new_tokens = DEFAULT_MAX_NEW_TOKENS
 
     # Load dataset
-    data = load_dataset(data_path, split=split, tasks=(task,))
+    data = load_dataset(data_path, split=split, tasks=(task,), trust_remote_code=True)
     data = list(data)
 
     # Create output directory
