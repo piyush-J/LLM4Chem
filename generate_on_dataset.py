@@ -117,6 +117,7 @@ def generate(
                 }
 
                 f.write(json.dumps(log, ensure_ascii=False) + '\n')
+                f.flush()
 
             pbar.update(e - k)
             k = e

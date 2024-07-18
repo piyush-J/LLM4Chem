@@ -151,6 +151,7 @@ class LlaSMolGeneration(object):
                     return_tensors='pt'
                 )
                 input_ids = input_ids['input_ids'].to(self.device)
+                torch.cuda.empty_cache()
                 batch_output_text, _ = self._generate(input_ids, max_new_tokens=max_new_tokens, **generation_settings)
                 num_batch_samples = len(batch_samples)
                 ko = 0
