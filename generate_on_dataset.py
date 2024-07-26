@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import json
 from tqdm.auto import tqdm
@@ -150,6 +151,9 @@ def main(
     os.makedirs(output_dir, exist_ok=True)
 
     for task in tasks:
+        
+        datetimestring = datetime.now().strftime("%Y%m%d_%H%M%S")
+
         generate(
             generator,
             data_path=data_path,
@@ -163,6 +167,8 @@ def main(
             **generation_kargs
         )
 
+        filename = f'{datetimestring}_{task}_{model_name.replace("/", "-")}'
+        generator.csvlogger.to_csv(os.path.join(output_dir, filename + '.csv'), index=False)
 
 if __name__ == "__main__":
     fire.Fire(main)
