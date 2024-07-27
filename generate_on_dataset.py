@@ -96,7 +96,7 @@ def generate(
             
             batch_samples = data[k: e]
             
-            batch_outputs = generator.generate(batch_input, batch_size=batch_size, max_input_tokens=max_input_tokens, max_new_tokens=max_new_tokens, canonicalize_smiles=False, print_out=False, **generation_kargs)
+            batch_outputs = generator.generate_with_feedback(batch_input, batch_size=batch_size, max_input_tokens=max_input_tokens, max_new_tokens=max_new_tokens, canonicalize_smiles=False, print_out=False, **generation_kargs)
 
             assert len(batch_input) == len(batch_outputs)
             for sample, sample_outputs in zip(batch_samples, batch_outputs):
