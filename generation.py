@@ -63,10 +63,10 @@ def canonicalize_smiles_in_text(text, tags=('<SMILES>', '</SMILES>'), keep_text_
 
 
 class LlaSMolGeneration(object):
-    def __init__(self, model_name, base_model=None, device=None):
+    def __init__(self, model_name, base_model=None, device=None, quantized=None):
         self.prompter = GeneralPrompter(get_chat_content)
 
-        self.tokenizer, self.model = load_tokenizer_and_model(model_name, base_model=base_model, device=device)
+        self.tokenizer, self.model = load_tokenizer_and_model(model_name, base_model=base_model, device=device, quantized=quantized)
         self.device = self.model.device  # TODO: check if this can work
 
     def create_sample(self, text, canonicalize_smiles=True, max_input_tokens=None):

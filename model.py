@@ -22,7 +22,7 @@ def get_device():
     return device
 
 
-def load_tokenizer_and_model(model_name, base_model=None, device=None):
+def load_tokenizer_and_model(model_name, base_model=None, device=None, quantized=None):
     if base_model is None:
         if model_name in BASE_MODELS:
             base_model = BASE_MODELS[model_name]
@@ -39,17 +39,41 @@ def load_tokenizer_and_model(model_name, base_model=None, device=None):
         device = get_device()
     
     if device == "cuda":
-        model = AutoModelForCausalLM.from_pretrained(
-            base_model,
-            quantization_config=bnb_config,
-            device_map="auto",
-        )
+        if quantized is None:
             
-        model = PeftModelForCausalLM.from_pretrained(
-            model,
-            model_name,
-            quantization_config=bnb_config,
-        )
+            print("Loading bfloat16 model.")
+
+            model = AutoModelForCausalLM.from_pretrained(
+                base_model,
+                torch_dtype=torch.bfloat16,
+                device_map="auto",
+            )
+                
+            model = PeftModelForCausalLM.from_pretrained(
+                model,
+                model_name,
+                torch_dtype=torch.bfloat16,
+            )
+
+        elif quantized == "4bit":
+
+            print("Loading 4-bit quantized model.")
+
+            model = AutoModelForCausalLM.from_pretrained(
+                base_model,
+                quantization_config=bnb_config,
+                device_map="auto",
+            )
+                
+            model = PeftModelForCausalLM.from_pretrained(
+                model,
+                model_name,
+                quantization_config=bnb_config,
+            )
+
+        else: 
+            raise NotImplementedError(f"No implementation for quantized model '{quantized}' yet.")
+
     else:
         raise NotImplementedError("No implementation for loading model on CPU yet.")
     

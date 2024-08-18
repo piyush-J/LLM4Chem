@@ -8,6 +8,7 @@ from datasets import load_dataset
 from config import TASKS_GENERATION_SETTINGS, TASKS, DEFAULT_MAX_INPUT_TOKENS, DEFAULT_MAX_NEW_TOKENS
 from generation import LlaSMolGeneration
 
+import wandb
 
 def generate(
     generator: LlaSMolGeneration,
@@ -139,14 +140,26 @@ def main(
     max_new_tokens: int = None,
     print_out=False,
     device = None,
+    quantized=None,
     **generation_kargs,
 ):
+
     if tasks is None:
         tasks = TASKS
     elif isinstance(tasks, str):
         tasks = (tasks,)
+
+    wandb.init(
+        project="RLSF-Chem",
+        settings=wandb.Settings(start_method='fork'), 
+        save_code=True,
+        config={
+        "model_name": model_name,
+        "tasks": tasks,
+        }
+    )
     
-    generator = LlaSMolGeneration(model_name=model_name, base_model=base_model, device=device)
+    generator = LlaSMolGeneration(model_name=model_name, base_model=base_model, device=device, quantized=quantized)
     
     os.makedirs(output_dir, exist_ok=True)
 
