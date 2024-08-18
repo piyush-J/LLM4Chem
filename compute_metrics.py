@@ -7,10 +7,10 @@ from config import TASKS, TASKS_WITH_SEMICOLON_REPLACE, TASKS_WITH_READING_GOLD_
 from utils.metrics import calculate_smiles_metrics, calculate_formula_metrics, calculate_text_metrics, calculate_number_metrics, calculate_boolean_metrics
 
 
-def read_result(prediction_dir, task, replace_semicolon=False, read_gold_from_dataset=False):
+def read_result(prediction_dir, data_path, task, replace_semicolon=False, read_gold_from_dataset=False):
     input_to_gold = None
     if read_gold_from_dataset:
-        split_set = load_dataset('osunlp/SMolInstruct', tasks=(task,), split='test')
+        split_set = load_dataset(data_path, tasks=(task,), split='test')
         input_to_gold = dict()
         for sample in split_set:
             input_key = sample['raw_input']
@@ -70,7 +70,7 @@ def read_result(prediction_dir, task, replace_semicolon=False, read_gold_from_da
     return pred_list, gold_list
 
 
-def main(prediction_dir, tasks=TASKS):
+def main(prediction_dir, data_path, tasks=TASKS):
     for task in tasks:
         print('===== %s =====' % task)
         if not os.path.isfile(os.path.join(prediction_dir, task + '.jsonl')):
@@ -79,7 +79,7 @@ def main(prediction_dir, tasks=TASKS):
 
         replace_semicolon = True if task in TASKS_WITH_SEMICOLON_REPLACE else False
         pred_list, gold_list = read_result(
-            prediction_dir, task, 
+            prediction_dir, data_path, task, 
             replace_semicolon=replace_semicolon, 
             read_gold_from_dataset=True if task in TASKS_WITH_READING_GOLD_FROM_DATASET else False,
         )
