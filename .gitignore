@@ -163,3 +163,9 @@ cython_debug/
 .DS_Store
 *.ipynb
 eval/
+
+# Project specific
+checkpoint/
+output_logs/
+wandb/
+*.sh
