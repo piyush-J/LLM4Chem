@@ -277,96 +277,96 @@ class LlaSMolGeneration(object):
         return all_outputs
 
     def generate(self, input_text, batch_size=1, max_input_tokens=512, max_new_tokens=1024, canonicalize_smiles=True, print_out=False, **generation_settings):
-            if isinstance(input_text, str):
-                input_text = [input_text]
-            else:
-                input_text = list(input_text)
-            assert len(input_text) > 0
+        if isinstance(input_text, str):
+            input_text = [input_text]
+        else:
+            input_text = list(input_text)
+        assert len(input_text) > 0
 
-            samples = []
-            for text in input_text:
-                sample = self.create_sample(text, canonicalize_smiles=canonicalize_smiles, max_input_tokens=max_input_tokens)
-                samples.append(sample)
+        samples = []
+        for text in input_text:
+            sample = self.create_sample(text, canonicalize_smiles=canonicalize_smiles, max_input_tokens=max_input_tokens)
+            samples.append(sample)
+        
+        all_outputs = []
+        k = 0
+        while True:
+            if k >= len(samples):
+                break
+            e = min(k + batch_size, len(samples))
+
+            batch_samples = []
+            skipped_samples = []
+            batch_outputs = []
+            original_index = {}
             
-            all_outputs = []
-            k = 0
-            while True:
-                if k >= len(samples):
-                    break
-                e = min(k + batch_size, len(samples))
+            for bidx, sample in enumerate(samples[k: e]):
+                if 'input_too_long' in sample and sample['input_too_long']:
+                    original_index[bidx] = ('s', len(skipped_samples))
+                    skipped_samples.append(sample)
+                    continue
+                original_index[bidx] = ('b', len(batch_samples))
+                batch_samples.append(sample)
 
-                batch_samples = []
-                skipped_samples = []
-                batch_outputs = []
-                original_index = {}
+            if len(batch_samples) > 0:
+                input_ids = {'input_ids': [sample['input_ids'] for sample in batch_samples]}
+                input_ids = self.tokenizer.pad(
+                    input_ids,
+                    padding=True,
+                    return_tensors='pt'
+                )
+                input_ids = input_ids['input_ids'].to(self.device)
+                torch.cuda.empty_cache()
+                batch_output_text, _ = self._generate(input_ids, max_new_tokens=max_new_tokens, **generation_settings)
+                num_batch_samples = len(batch_samples)
+                ko = 0
+                num_return_sequences = 1 if 'num_return_sequences' not in generation_settings else generation_settings['num_return_sequences']
+                for sample in range(num_batch_samples):
+                    sample_outputs = []
+                    for _ in range(num_return_sequences):
+                        sample_outputs.append(batch_output_text[ko])
+                        ko += 1
+                    batch_outputs.append(sample_outputs)
                 
-                for bidx, sample in enumerate(samples[k: e]):
-                    if 'input_too_long' in sample and sample['input_too_long']:
-                        original_index[bidx] = ('s', len(skipped_samples))
-                        skipped_samples.append(sample)
-                        continue
-                    original_index[bidx] = ('b', len(batch_samples))
-                    batch_samples.append(sample)
+            new_batch_samples = []
+            new_batch_outputs = []
 
-                if len(batch_samples) > 0:
-                    input_ids = {'input_ids': [sample['input_ids'] for sample in batch_samples]}
-                    input_ids = self.tokenizer.pad(
-                        input_ids,
-                        padding=True,
-                        return_tensors='pt'
-                    )
-                    input_ids = input_ids['input_ids'].to(self.device)
-                    torch.cuda.empty_cache()
-                    batch_output_text, _ = self._generate(input_ids, max_new_tokens=max_new_tokens, **generation_settings)
-                    num_batch_samples = len(batch_samples)
-                    ko = 0
-                    num_return_sequences = 1 if 'num_return_sequences' not in generation_settings else generation_settings['num_return_sequences']
-                    for sample in range(num_batch_samples):
-                        sample_outputs = []
-                        for _ in range(num_return_sequences):
-                            sample_outputs.append(batch_output_text[ko])
-                            ko += 1
-                        batch_outputs.append(sample_outputs)
-                    
-                new_batch_samples = []
-                new_batch_outputs = []
+            for bidx in sorted(original_index.keys()):
+                place, widx = original_index[bidx]
+                if place == 'b':
+                    sample = batch_samples[widx]
+                    output = batch_outputs[widx]
+                elif place == 's':
+                    sample = skipped_samples[widx]
+                    output = None
+                else:
+                    raise ValueError(place)
+                new_batch_samples.append(sample)
+                new_batch_outputs.append(output)
 
-                for bidx in sorted(original_index.keys()):
-                    place, widx = original_index[bidx]
-                    if place == 'b':
-                        sample = batch_samples[widx]
-                        output = batch_outputs[widx]
-                    elif place == 's':
-                        sample = skipped_samples[widx]
-                        output = None
+            batch_samples = new_batch_samples
+            batch_outputs = new_batch_outputs
+
+            assert len(batch_samples) == len(batch_outputs)
+            for sample, sample_outputs in zip(batch_samples, batch_outputs):
+                if print_out:
+                    print('=============')
+                    print('Input: %s' % sample['input_text'])
+                    if sample_outputs is None:
+                        print('Output: None (Because the input text exceeds the token limit (%d) )' % max_input_tokens)
                     else:
-                        raise ValueError(place)
-                    new_batch_samples.append(sample)
-                    new_batch_outputs.append(output)
+                        for idx, output_text in enumerate(sample_outputs, start=1):
+                            print('Output %d: %s' % (idx, output_text))
+                    print('\n')
 
-                batch_samples = new_batch_samples
-                batch_outputs = new_batch_outputs
+                log = {
+                    'input_text': sample['input_text'], 
+                    'real_input_text': sample['real_input_text'],
+                    'output': sample_outputs,
+                }
 
-                assert len(batch_samples) == len(batch_outputs)
-                for sample, sample_outputs in zip(batch_samples, batch_outputs):
-                    if print_out:
-                        print('=============')
-                        print('Input: %s' % sample['input_text'])
-                        if sample_outputs is None:
-                            print('Output: None (Because the input text exceeds the token limit (%d) )' % max_input_tokens)
-                        else:
-                            for idx, output_text in enumerate(sample_outputs, start=1):
-                                print('Output %d: %s' % (idx, output_text))
-                        print('\n')
+                all_outputs.append(log)
 
-                    log = {
-                        'input_text': sample['input_text'], 
-                        'real_input_text': sample['real_input_text'],
-                        'output': sample_outputs,
-                    }
-
-                    all_outputs.append(log)
-
-                k = e
-            
-            return all_outputs
+            k = e
+        
+        return all_outputs
