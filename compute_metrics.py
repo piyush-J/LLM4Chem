@@ -10,7 +10,11 @@ from utils.metrics import calculate_smiles_metrics, calculate_formula_metrics, c
 def read_result(prediction_dir, data_path, task, replace_semicolon=False, read_gold_from_dataset=False):
     input_to_gold = None
     if read_gold_from_dataset:
-        split_set = load_dataset(data_path, tasks=(task,), split='test')
+        try:
+            split_set = load_dataset(data_path, tasks=(task,), split='test')
+        except ValueError: # The dataset does not have the task field (custom dataset)
+            print('The dataset does not have the task field.')
+            split_set = load_dataset(data_path, split='test')
         input_to_gold = dict()
         for sample in split_set:
             input_key = sample['raw_input']

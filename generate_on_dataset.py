@@ -49,7 +49,12 @@ def generate(
         max_new_tokens = DEFAULT_MAX_NEW_TOKENS
 
     # Load dataset
-    data = load_dataset(data_path, split=split, tasks=(task,), trust_remote_code=True)
+    try:
+        data = load_dataset(data_path, split=split, tasks=(task,), trust_remote_code=True)
+    except ValueError: # The dataset does not have the task field (custom dataset)
+        print('The dataset does not have the task field.')
+        data = load_dataset(data_path, split=split)
+
     data = list(data)
 
     # Create output directory
@@ -127,7 +132,7 @@ def generate(
 
 def main(
     # Model
-    model_name: str = "",
+    model_name: str = "", # model_name = "osunlp/LlaSMol-Mistral-7B" and base_model remains None, or model_name = <peft_checkpoint_path> and base_model = <base_model>, e.g., 'mistralai/Mistral-7B-v0.1' (see config.py)
     base_model: str = None,
     # Data
     data_path: str = "osunlp/SMolInstruct",
@@ -156,6 +161,7 @@ def main(
         save_code=True,
         config={
         "model_name": model_name,
+        "base_model": base_model,
         "tasks": tasks,
         }
     )

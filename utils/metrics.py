@@ -129,18 +129,18 @@ def calculate_smiles_metrics(
 ):
     num_all = len(preds_smiles_list)
     assert num_all > 0
-    assert num_all == len(golds_smiles_list)
-    k = len(preds_smiles_list[0])
+    assert num_all == len(golds_smiles_list) # Number of samples
+    k = len(preds_smiles_list[0]) # Number of predictions for each sample
 
     dk_pred_smiles_list_dict = {}
     dk_pred_no_answer_labels_dict = {}
     dk_pred_invalid_labels_dict = {}
-    for dk in range(k):
-        dk_pred_smiles_list_dict[dk] = []
+    for dk in range(k): # initialize the dict for each prediction
+        dk_pred_smiles_list_dict[dk] = [] 
         dk_pred_no_answer_labels_dict[dk] = []
         dk_pred_invalid_labels_dict[dk] = []
-    for pred_smiles_list in tqdm(preds_smiles_list):
-        if pred_smiles_list is None:
+    for pred_smiles_list in tqdm(preds_smiles_list): 
+        if pred_smiles_list is None: 
             for dk in range(k):
                 dk_pred_no_answer_labels_dict[dk].append(True)
                 dk_pred_invalid_labels_dict[dk].append(False)
@@ -162,6 +162,7 @@ def calculate_smiles_metrics(
                     dk_pred_invalid_labels_dict[dk].append(False)
             dk_pred_smiles_list_dict[dk].append(item)
     
+    # canonicalize gold smiles
     new_list = []
     for gold_smiles_list in tqdm(golds_smiles_list):
         sample_gold_smiles_list = []
@@ -179,11 +180,11 @@ def calculate_smiles_metrics(
 
     tk_pred_no_answer_labels = np.array([True] * num_all)
     tk_pred_invalid_labels = np.array([True] * num_all)
-    for dk in range(k):
+    for dk in range(k): # calculate the number of no answer and invalid samples for each top-k prediction
         dk_no_answer_labels = dk_pred_no_answer_labels_dict[dk]
         dk_invalid_labels = dk_pred_invalid_labels_dict[dk]
-        tk_pred_no_answer_labels = tk_pred_no_answer_labels & dk_no_answer_labels
-        tk_pred_invalid_labels = tk_pred_invalid_labels & dk_invalid_labels
+        tk_pred_no_answer_labels = tk_pred_no_answer_labels & dk_no_answer_labels # if any prediction is no answer, then the sample is no answer
+        tk_pred_invalid_labels = tk_pred_invalid_labels & dk_invalid_labels # if any prediction is invalid, then the sample is invalid
         metric_results['num_t%d_no_answer' % (dk + 1)] = tk_pred_no_answer_labels.sum().item()
         metric_results['num_t%d_invalid' % (dk + 1)] = tk_pred_invalid_labels.sum().item()
     
@@ -199,7 +200,7 @@ def calculate_smiles_metrics(
             for dk in range(k):
                 dk_pred_smiles_list = dk_pred_smiles_list_dict[dk]
                 dk_exact_match_labels = judge_exact_match(dk_pred_smiles_list, golds_smiles_list)
-                tk_exact_match_labels = tk_exact_match_labels | dk_exact_match_labels
+                tk_exact_match_labels = tk_exact_match_labels | dk_exact_match_labels # if any prediction is exact match, then the sample is exact match
                 metric_results['num_t%d_exact_match' % (dk + 1)] = tk_exact_match_labels.sum().item()
         elif metric == 'fingerprint':
             d1_pred_mol_list = []
