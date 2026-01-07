@@ -54,6 +54,7 @@ def generate(
     except ValueError: # The dataset does not have the task field (custom dataset)
         print('The dataset does not have the task field.')
         data = load_dataset(data_path, split=split)
+        # data = data.select(range(10))
 
     data = list(data)
 

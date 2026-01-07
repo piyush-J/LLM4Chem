@@ -13,7 +13,7 @@ from transformers import (AutoModelForCausalLM, AutoTokenizer,
 from trl import SFTConfig, SFTTrainer, DataCollatorForCompletionOnlyLM
 from utils.chat_generation import generate_chat
 from utils.core_tagger import CoreTagger
-from utils.general_prompter import GeneralPrompter, get_chat_content
+from utils.general_prompter import GeneralPrompter, get_chat_content, get_chat_content_galactica
 
 from extract_prediction import extract_answer_part
 from config import TASKS, TASKS_WITH_SEMICOLON_REPLACE, TASKS_WITH_READING_GOLD_FROM_DATASET, TASK_TAGS
@@ -64,7 +64,8 @@ def train(
     eval_freq: int = 100,
     save_freq: int = 100,
     remove_unused_columns: bool = True,
-    gradient_checkpointing: bool = False
+    gradient_checkpointing: bool = False,
+    compute_metrics: bool = True
     ):
 
     use_wandb = len(wandb_project) > 0 or (
@@ -200,7 +201,21 @@ def train(
     # LOAD PROMPTER
 
     prefix_chat = None
-    prompter = GeneralPrompter(get_chat_content, '[/INST]')
+
+    if 'mistral' in base_model.lower():
+        apply_chat_template_func = get_chat_content
+        response_split = '[/INST]'
+    elif 'galactica' in base_model.lower():
+        apply_chat_template_func = get_chat_content_galactica
+        response_split = '[START_REF]'
+    elif 'gemma' in base_model.lower():
+        apply_chat_template_func = tokenizer.apply_chat_template
+        response_split = '<end_of_turn>'
+    else:
+        raise NotImplementedError
+
+    prompter = GeneralPrompter(apply_chat_template_func, response_split)
+
     core_tagger = CoreTagger(tokenizer, core_tags_as_special_tokens=False, include_tags=True)
 
     # LOAD DATASET
@@ -218,7 +233,7 @@ def train(
             output_texts.append(text)
         return output_texts
     
-    collator = DataCollatorForCompletionOnlyLM("[/INST]", tokenizer=tokenizer) # training on completion only
+    collator = DataCollatorForCompletionOnlyLM(response_split, tokenizer=tokenizer) # training on completion only
 
     # LOAD MODEL
 
@@ -290,8 +305,8 @@ def train(
         packing = False,
         formatting_func=formatting_prompts_func,
         data_collator=collator,
-        compute_metrics = compute_val_metrics, 
-        preprocess_logits_for_metrics = preprocess_logits_for_metrics
+        compute_metrics = compute_val_metrics if compute_metrics else None, 
+        preprocess_logits_for_metrics = preprocess_logits_for_metrics if compute_metrics else None
     ))
 
     print("Training...")

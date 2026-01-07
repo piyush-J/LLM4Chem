@@ -4,7 +4,7 @@ import torch
 from transformers import GenerationConfig
 
 from utils.chat_generation import generate_chat, generate_chat_v2
-from utils.general_prompter import GeneralPrompter, get_chat_content
+from utils.general_prompter import GeneralPrompter, get_chat_content, get_chat_content_galactica
 from utils.smiles_canonicalization import canonicalize_molecule_smiles
 
 from model import load_tokenizer_and_model
@@ -17,7 +17,7 @@ from rdkit import RDLogger
 
 rdBase.WrapLogs()
 
-def extract_prediction_smiles(output_text): #TODO (P3): generalize this function to extract any tag
+def extract_prediction_smiles(output_text): #TODO (P3): generalize this function to extract any tag -> check extract_predictions.py file
     left_tag = '<SMILES>'
     right_tag = '</SMILES>'
     assert isinstance(output_text, str)
@@ -46,6 +46,7 @@ def rdkit_eval_function(list_of_convo):
 
 def tokenize(tokenizer, prompt, add_eos_token=True):
     # there's probably a way to do this with the tokenizer settings
+    st = time.time()
     result = tokenizer(
         prompt,
         truncation=False,
@@ -53,6 +54,7 @@ def tokenize(tokenizer, prompt, add_eos_token=True):
         return_tensors=None,
         add_special_tokens=False,
     )
+    print("tokenize 1: ", time.time()-st)
     if (
         result["input_ids"][-1] != tokenizer.eos_token_id
         and add_eos_token
@@ -61,6 +63,7 @@ def tokenize(tokenizer, prompt, add_eos_token=True):
         result["attention_mask"].append(1)
 
     result["labels"] = result["input_ids"].copy()
+    print("tokenize 1: ", time.time()-st)
 
     return result
 
@@ -100,11 +103,22 @@ def canonicalize_smiles_in_text(text, tags=('<SMILES>', '</SMILES>'), keep_text_
 
 class LlaSMolGeneration(object):
     def __init__(self, model_name, base_model=None, device=None, quantized=None):
-        self.prompter = GeneralPrompter(get_chat_content)
-
         self.tokenizer, self.model = load_tokenizer_and_model(model_name, base_model=base_model, device=device, quantized=quantized)
         self.device = self.model.device  # TODO: check if this can work
         self.csvlogger = pd.DataFrame(columns=['input_original', 'feedback_iteration_no', 'input_current_entire_conversation', 'output', 'feedback', 'input_too_long'])
+
+        if 'mistral' in base_model.lower():
+            apply_chat_template_func = get_chat_content
+            response_split = '[/INST]'
+        elif 'galactica' in base_model.lower():
+            apply_chat_template_func = get_chat_content_galactica
+            response_split = '[START_REF]'
+        elif 'gemma' in base_model.lower():
+            apply_chat_template_func = self.tokenizer.apply_chat_template
+            response_split = '<end_of_turn>'
+        else:
+            raise NotImplementedError
+        self.prompter = GeneralPrompter(apply_chat_template_func, response_split)
 
     def create_sample(self, text, canonicalize_smiles=True, max_input_tokens=None):
         if canonicalize_smiles:
@@ -126,12 +140,14 @@ class LlaSMolGeneration(object):
         return sample
     
     def _generate(self, input_ids, max_new_tokens=1024, **generation_settings):
+        st = time.time()
         generation_config = GenerationConfig(
             pad_token_id=self.model.config.pad_token_id,
             bos_token_id=self.model.config.bos_token_id,
             eos_token_id=self.model.config.eos_token_id,
             **generation_settings,
         )
+        print("_generate 1: ", time.time()-st)
         self.model.eval()
         with torch.no_grad():
             generation_output = self.model.generate(
@@ -141,13 +157,15 @@ class LlaSMolGeneration(object):
                 output_scores=True,
                 max_new_tokens=max_new_tokens,
             )
+        print("_generate 2: ", time.time()-st)
         s = generation_output.sequences
         output = self.tokenizer.batch_decode(s, skip_special_tokens=False)
         output_text = []
+        print("_generate 3: ", time.time()-st)
         for output_item in output:
             text = self.prompter.get_response(output_item)
             output_text.append(text)
-
+        print("_generate 4: ", time.time()-st)
         return output_text, output
 
     def generate_with_feedback(self, input_text, batch_size=1, max_input_tokens=512, max_new_tokens=1024, canonicalize_smiles=True, print_out=False, **generation_settings):
@@ -368,5 +386,5 @@ class LlaSMolGeneration(object):
                 all_outputs.append(log)
 
             k = e
-        
+            
         return all_outputs

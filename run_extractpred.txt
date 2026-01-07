@@ -1,0 +1,86 @@
+# module load StdEnv/2023 gcc/12.3 cuda/12.2 python/3.11.5 arrow/16.1.0 rust rdkit/2023.09.3
+# source ../rlsfchem_env/bin/activate
+# export XDG_CACHE_HOME=/home/piyush/projects/def-vganesh/piyush/rlsf-chem/hf_cache/
+
+# python -u generate_on_dataset.py --data_path piyush-j/rlsf_molecule_generation --model_name checkpoint/molecule_generation/LlaSMol-Mistral-7B-SFT_mg0.2.0/final_checkpoint --base_model mistralai/Mistral-7B-v0.1 --output_dir eval/LlaSMol-Mistral-7B-SFT_mg0.2.0/output --tasks "['molecule_generation']" 
+
+
+python extract_prediction.py --output_dir eval/LlaSMol-Mistral-7B-SFT_fwd0.2.1/output --prediction_dir eval/LlaSMol-Mistral-7B-SFT_fwd0.2.1/prediction --tasks "['forward_synthesis']"
+python extract_prediction.py --output_dir eval/LlaSMol-Mistral-7B-SFT_mg0.2.0/output --prediction_dir eval/LlaSMol-Mistral-7B-SFT_mg0.2.0/prediction --tasks "['molecule_generation']"
+python extract_prediction.py --output_dir eval/LlaSMol-Mistral-7B-SFT_rs0.2.1/output --prediction_dir eval/LlaSMol-Mistral-7B-SFT_rs0.2.1/prediction --tasks "['retrosynthesis']"
+
+python extract_prediction.py --output_dir eval/LlaSMol-Mistral-7B-SFT_merged0.2.1/forward_synthesis/output --prediction_dir eval/LlaSMol-Mistral-7B-SFT_merged0.2.1/forward_synthesis/prediction --tasks "['forward_synthesis']"
+python extract_prediction.py --output_dir eval/LlaSMol-Mistral-7B-SFT_merged0.2.1/molecule_generation/output --prediction_dir eval/LlaSMol-Mistral-7B-SFT_merged0.2.1/molecule_generation/prediction --tasks "['molecule_generation']"
+python extract_prediction.py --output_dir eval/LlaSMol-Mistral-7B-SFT_merged0.2.1/retrosynthesis/output --prediction_dir eval/LlaSMol-Mistral-7B-SFT_merged0.2.1/retrosynthesis/prediction --tasks "['retrosynthesis']"
+
+python compute_metrics.py --prediction_dir eval/LlaSMol-Mistral-7B-SFT_fwd0.2.1/prediction --tasks "['forward_synthesis']" --data_path piyush-j/rlsf_forward_synthesis > eval/LlaSMol-Mistral-7B-SFT_fwd0.2.1/prediction/pred.out 2>&1 &
+python compute_metrics.py --prediction_dir eval/LlaSMol-Mistral-7B-SFT_mg0.2.0/prediction --tasks "['molecule_generation']" --data_path piyush-j/rlsf_molecule_generation > eval/LlaSMol-Mistral-7B-SFT_mg0.2.0/prediction/pred.out 2>&1 &
+python compute_metrics.py --prediction_dir eval/LlaSMol-Mistral-7B-SFT_rs0.2.1/prediction --tasks "['retrosynthesis']" --data_path piyush-j/rlsf_retrosynthesis > eval/LlaSMol-Mistral-7B-SFT_rs0.2.1/prediction/pred.out 2>&1 &
+
+python compute_metrics.py --prediction_dir eval/LlaSMol-Mistral-7B-SFT_merged0.2.1/forward_synthesis/prediction --tasks "['forward_synthesis']" --data_path piyush-j/rlsf_forward_synthesis > eval/LlaSMol-Mistral-7B-SFT_merged0.2.1/forward_synthesis/prediction/pred.out 2>&1 &
+python compute_metrics.py --prediction_dir eval/LlaSMol-Mistral-7B-SFT_merged0.2.1/molecule_generation/prediction --tasks "['molecule_generation']" --data_path piyush-j/rlsf_molecule_generation > eval/LlaSMol-Mistral-7B-SFT_merged0.2.1/molecule_generation/prediction/pred.out 2>&1 &
+python compute_metrics.py --prediction_dir eval/LlaSMol-Mistral-7B-SFT_merged0.2.1/retrosynthesis/prediction --tasks "['retrosynthesis']" --data_path piyush-j/rlsf_retrosynthesis > eval/LlaSMol-Mistral-7B-SFT_merged0.2.1/retrosynthesis/prediction/pred.out 2>&1 &
+
+
+python extract_prediction.py --output_dir eval/GPT4/molecule_generation/output --prediction_dir eval/GPT4/molecule_generation/prediction --tasks "['molecule_generation']"
+python compute_metrics.py --prediction_dir eval/GPT4/molecule_generation/prediction --tasks "['molecule_generation']" --data_path piyush-j/rlsf_molecule_generation > eval/GPT4/molecule_generation/prediction/pred.out 2>&1 &
+python compute_metrics.py --prediction_dir eval/GPT4/forward_synthesis/prediction --tasks "['forward_synthesis']" --data_path piyush-j/rlsf_forward_synthesis > eval/GPT4/forward_synthesis/prediction/pred.out 2>&1 &
+
+
+----------------
+Zero shot 
+
+Galactica
+
+python extract_prediction.py --output_dir eval/LlaSMol-galactica-1.3b-zeroshot/forward_synthesis/output --prediction_dir eval/LlaSMol-galactica-1.3b-zeroshot/forward_synthesis/prediction --tasks "['forward_synthesis']"
+python extract_prediction.py --output_dir eval/LlaSMol-galactica-1.3b-zeroshot/molecule_generation/output --prediction_dir eval/LlaSMol-galactica-1.3b-zeroshot/molecule_generation/prediction --tasks "['molecule_generation']"
+python extract_prediction.py --output_dir eval/LlaSMol-galactica-1.3b-zeroshot/retrosynthesis/output --prediction_dir eval/LlaSMol-galactica-1.3b-zeroshot/retrosynthesis/prediction --tasks "['retrosynthesis']"
+
+python compute_metrics.py --prediction_dir eval/LlaSMol-galactica-1.3b-zeroshot/forward_synthesis/prediction --tasks "['forward_synthesis']" --data_path piyush-j/rlsf_forward_synthesis > eval/LlaSMol-galactica-1.3b-zeroshot/forward_synthesis/prediction/pred.out 2>&1 &
+python compute_metrics.py --prediction_dir eval/LlaSMol-galactica-1.3b-zeroshot/molecule_generation/prediction --tasks "['molecule_generation']" --data_path piyush-j/rlsf_molecule_generation > eval/LlaSMol-galactica-1.3b-zeroshot/molecule_generation/prediction/pred.out 2>&1 &
+python compute_metrics.py --prediction_dir eval/LlaSMol-galactica-1.3b-zeroshot/retrosynthesis/prediction --tasks "['retrosynthesis']" --data_path piyush-j/rlsf_retrosynthesis > eval/LlaSMol-galactica-1.3b-zeroshot/retrosynthesis/prediction/pred.out 2>&1 &
+
+Gemma
+
+python extract_prediction.py --output_dir eval/LlaSMol-gemma-2b-it-zeroshot/forward_synthesis/output --prediction_dir eval/LlaSMol-gemma-2b-it-zeroshot/forward_synthesis/prediction --tasks "['forward_synthesis']"
+python extract_prediction.py --output_dir eval/LlaSMol-gemma-2b-it-zeroshot/molecule_generation/output --prediction_dir eval/LlaSMol-gemma-2b-it-zeroshot/molecule_generation/prediction --tasks "['molecule_generation']"
+python extract_prediction.py --output_dir eval/LlaSMol-gemma-2b-it-zeroshot/retrosynthesis/output --prediction_dir eval/LlaSMol-gemma-2b-it-zeroshot/retrosynthesis/prediction --tasks "['retrosynthesis']"
+
+python compute_metrics.py --prediction_dir eval/LlaSMol-gemma-2b-it-zeroshot/forward_synthesis/prediction --tasks "['forward_synthesis']" --data_path piyush-j/rlsf_forward_synthesis > eval/LlaSMol-gemma-2b-it-zeroshot/forward_synthesis/prediction/pred.out 2>&1 &
+python compute_metrics.py --prediction_dir eval/LlaSMol-gemma-2b-it-zeroshot/molecule_generation/prediction --tasks "['molecule_generation']" --data_path piyush-j/rlsf_molecule_generation > eval/LlaSMol-gemma-2b-it-zeroshot/molecule_generation/prediction/pred.out 2>&1 &
+python compute_metrics.py --prediction_dir eval/LlaSMol-gemma-2b-it-zeroshot/retrosynthesis/prediction --tasks "['retrosynthesis']" --data_path piyush-j/rlsf_retrosynthesis > eval/LlaSMol-gemma-2b-it-zeroshot/retrosynthesis/prediction/pred.out 2>&1 &
+
+Mistral
+
+python extract_prediction.py --output_dir eval/LlaSMol-Mistral-7B-zeroshot/forward_synthesis/output --prediction_dir eval/LlaSMol-Mistral-7B-zeroshot/forward_synthesis/prediction --tasks "['forward_synthesis']"
+python extract_prediction.py --output_dir eval/LlaSMol-Mistral-7B-zeroshot/molecule_generation/output --prediction_dir eval/LlaSMol-Mistral-7B-zeroshot/molecule_generation/prediction --tasks "['molecule_generation']"
+python extract_prediction.py --output_dir eval/LlaSMol-Mistral-7B-zeroshot/retrosynthesis/output --prediction_dir eval/LlaSMol-Mistral-7B-zeroshot/retrosynthesis/prediction --tasks "['retrosynthesis']"
+
+python compute_metrics.py --prediction_dir eval/LlaSMol-Mistral-7B-zeroshot/forward_synthesis/prediction --tasks "['forward_synthesis']" --data_path piyush-j/rlsf_forward_synthesis > eval/LlaSMol-Mistral-7B-zeroshot/forward_synthesis/prediction/pred.out 2>&1 &
+python compute_metrics.py --prediction_dir eval/LlaSMol-Mistral-7B-zeroshot/molecule_generation/prediction --tasks "['molecule_generation']" --data_path piyush-j/rlsf_molecule_generation > eval/LlaSMol-Mistral-7B-zeroshot/molecule_generation/prediction/pred.out 2>&1 &
+python compute_metrics.py --prediction_dir eval/LlaSMol-Mistral-7B-zeroshot/retrosynthesis/prediction --tasks "['retrosynthesis']" --data_path piyush-j/rlsf_retrosynthesis > eval/LlaSMol-Mistral-7B-zeroshot/retrosynthesis/prediction/pred.out 2>&1 &
+
+-----------------
+SFT
+
+Galactica
+
+python extract_prediction.py --output_dir eval/LlaSMol-galactica-1.3b-SFT_fwd0.2.1/output --prediction_dir eval/LlaSMol-galactica-1.3b-SFT_fwd0.2.1/prediction --tasks "['forward_synthesis']"
+python extract_prediction.py --output_dir eval/LlaSMol-galactica-1.3b-SFT_mg0.2.0/output --prediction_dir eval/LlaSMol-galactica-1.3b-SFT_mg0.2.0/prediction --tasks "['molecule_generation']"
+python extract_prediction.py --output_dir eval/LlaSMol-galactica-1.3b-SFT_rs0.2.1/output --prediction_dir eval/LlaSMol-galactica-1.3b-SFT_rs0.2.1/prediction --tasks "['retrosynthesis']"
+
+python compute_metrics.py --prediction_dir eval/LlaSMol-galactica-1.3b-SFT_fwd0.2.1/prediction --tasks "['forward_synthesis']" --data_path piyush-j/rlsf_forward_synthesis > eval/LlaSMol-galactica-1.3b-SFT_fwd0.2.1/prediction/pred.out 2>&1 &
+python compute_metrics.py --prediction_dir eval/LlaSMol-galactica-1.3b-SFT_mg0.2.0/prediction --tasks "['molecule_generation']" --data_path piyush-j/rlsf_molecule_generation > eval/LlaSMol-galactica-1.3b-SFT_mg0.2.0/prediction/pred.out 2>&1 &
+python compute_metrics.py --prediction_dir eval/LlaSMol-galactica-1.3b-SFT_rs0.2.1/prediction --tasks "['retrosynthesis']" --data_path piyush-j/rlsf_retrosynthesis > eval/LlaSMol-galactica-1.3b-SFT_rs0.2.1/prediction/pred.out 2>&1 &
+
+Gemma
+
+python extract_prediction.py --output_dir eval/LlaSMol-gemma-2b-it-SFT_fwd0.2.1/output --prediction_dir eval/LlaSMol-gemma-2b-it-SFT_fwd0.2.1/prediction --tasks "['forward_synthesis']"
+python extract_prediction.py --output_dir eval/LlaSMol-gemma-2b-it-SFT_mg0.2.0/output --prediction_dir eval/LlaSMol-gemma-2b-it-SFT_mg0.2.0/prediction --tasks "['molecule_generation']"
+python extract_prediction.py --output_dir eval/LlaSMol-gemma-2b-it-SFT_rs0.2.1/output --prediction_dir eval/LlaSMol-gemma-2b-it-SFT_rs0.2.1/prediction --tasks "['retrosynthesis']"
+
+python compute_metrics.py --prediction_dir eval/LlaSMol-gemma-2b-it-SFT_fwd0.2.1/prediction --tasks "['forward_synthesis']" --data_path piyush-j/rlsf_forward_synthesis > eval/LlaSMol-gemma-2b-it-SFT_fwd0.2.1/prediction/pred.out 2>&1 &
+python compute_metrics.py --prediction_dir eval/LlaSMol-gemma-2b-it-SFT_mg0.2.0/prediction --tasks "['molecule_generation']" --data_path piyush-j/rlsf_molecule_generation > eval/LlaSMol-gemma-2b-it-SFT_mg0.2.0/prediction/pred.out 2>&1 &
+python compute_metrics.py --prediction_dir eval/LlaSMol-gemma-2b-it-SFT_rs0.2.1/prediction --tasks "['retrosynthesis']" --data_path piyush-j/rlsf_retrosynthesis > eval/LlaSMol-gemma-2b-it-SFT_rs0.2.1/prediction/pred.out 2>&1 &
+
+

@@ -37,7 +37,7 @@ def load_tokenizer_and_model(model_name, base_model=None, device=None, quantized
 
     if device is None:
         device = get_device()
-    
+
     if device == "cuda":
         if quantized is None:
             
@@ -48,12 +48,15 @@ def load_tokenizer_and_model(model_name, base_model=None, device=None, quantized
                 torch_dtype=torch.bfloat16,
                 device_map="auto",
             )
-                
-            model = PeftModelForCausalLM.from_pretrained(
-                model,
-                model_name,
-                torch_dtype=torch.bfloat16,
-            )
+
+            if model_name:
+                model = PeftModelForCausalLM.from_pretrained(
+                    model,
+                    model_name,
+                    torch_dtype=torch.bfloat16,
+                )
+            else:
+                print("Only using base model!")
 
         elif quantized == "4bit":
 
@@ -64,12 +67,15 @@ def load_tokenizer_and_model(model_name, base_model=None, device=None, quantized
                 quantization_config=bnb_config,
                 device_map="auto",
             )
-                
-            model = PeftModelForCausalLM.from_pretrained(
-                model,
-                model_name,
-                quantization_config=bnb_config,
-            )
+
+            if model_name:
+                model = PeftModelForCausalLM.from_pretrained(
+                    model,
+                    model_name,
+                    quantization_config=bnb_config,
+                )
+            else:
+                print("Only using base model!")
 
         else: 
             raise NotImplementedError(f"No implementation for quantized model '{quantized}' yet.")
@@ -77,9 +83,12 @@ def load_tokenizer_and_model(model_name, base_model=None, device=None, quantized
     else:
         raise NotImplementedError("No implementation for loading model on CPU yet.")
     
-    model = model.merge_and_unload()
+    if model_name:
+        model = model.merge_and_unload()
+        # unwind broken decapoda-research config
+    else:
+        print("Not merging as only using base model!")
 
-    # unwind broken decapoda-research config
     model.config.pad_token_id = tokenizer.pad_token_id
     model.config.bos_token_id = tokenizer.bos_token_id
     model.config.eos_token_id = tokenizer.eos_token_id

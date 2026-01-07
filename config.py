@@ -22,16 +22,17 @@ DEFAULT_MAX_NEW_TOKENS = 1024
 
 TASKS_GENERATION_SETTINGS = {
     'forward_synthesis': {
+        'max_new_tokens': 300,
         'generation_kargs': {
-            'num_return_sequences': 5,
-            'num_beams': 8
+            'num_return_sequences': 1,
+            'num_beams': 3
         },
     },
     'retrosynthesis': {
-        'max_new_tokens': 960,
+        'max_new_tokens': 300, # for the rlsf-retrosynthesis
         'generation_kargs': {
-            'num_return_sequences': 10,
-            'num_beams': 13
+            'num_return_sequences': 1,
+            'num_beams': 3
         },
     },
     'molecule_captioning': {
@@ -41,9 +42,10 @@ TASKS_GENERATION_SETTINGS = {
         },
     },
     'molecule_generation': {
+        'max_new_tokens': 300,
         'generation_kargs': {
-            'num_return_sequences': 5,
-            'num_beams': 8
+            'num_return_sequences': 1,
+            'num_beams': 3
         },
     },
     'name_conversion-i2f': {
